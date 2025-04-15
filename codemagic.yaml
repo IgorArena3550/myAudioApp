@@ -23,6 +23,10 @@ workflows:
             echo "Criando scheme compartilhado..."
             xcodebuild -project myAudioApp.xcodeproj -scheme myAudioApp -showBuildSettings
           }
+      - name: Verificar schemes após adicionar .xcscheme
+        script: |
+          cd ios
+          xcodebuild -list -project myAudioApp.xcodeproj
       - name: Build iOS
         script: |
           cd ios
