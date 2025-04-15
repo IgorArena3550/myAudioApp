@@ -1,0 +1,45 @@
+workflows:
+  react-native-app:
+    name: Build MyAudioApp (iOS)
+    environment:
+      vars:
+        XCODE_WORKSPACE: "ios/MyAudioApp.xcworkspace"
+        XCODE_SCHEME: "MyAudioApp"
+      node: 18
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Instalar dependências
+        script: |
+          npm install
+          cd ios && pod install && cd ..
+      - name: Gerar bundle iOS
+        script: |
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output ios/main.jsbundle \
+            --assets-dest ios
+      - name: Build iOS
+        script: |
+          xcodebuild -workspace ios/MyAudioApp.xcworkspace \
+            -scheme MyAudioApp \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/build/MyAudioApp.xcarchive \
+            archive
+
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/build/MyAudioApp.xcarchive \
+            -exportOptionsPlist ios/exportOptions.plist \
+            -exportPath $CM_BUILD_DIR/build/export
+    artifacts:
+      - build/export/*.ipa
+    publishing:
+      email:
+        recipients:
+          - seu.email@exemplo.com
+        notify:
+          success: true
+          failure: true
