@@ -1,36 +1,34 @@
 workflows:
-  ios-build:
-    name: iOS Build (React Native)
+  ios-workflow:
+    name: iOS Build
     environment:
-      xcode: latest
-      node: 18.18.2
-      cocoapods: default
       vars:
-        APP_NAME: "myAudioApp"
+        APP_NAME: myAudioApp
+      xcode: 15.2
     scripts:
       - name: Instalar dependências
         script: |
           npm install
+
       - name: Verificar esquema compartilhado
         script: |
-          xcodebuild -project $APP_NAME.xcodeproj -list
+          xcodebuild -project ios/$APP_NAME.xcodeproj -list
+
       - name: Compilar e arquivar o app
         script: |
-          xcodebuild -project $APP_NAME.xcodeproj \
+          xcodebuild -project ios/$APP_NAME.xcodeproj \
             -scheme $APP_NAME \
             -configuration Release \
             -archivePath $CM_BUILD_DIR/$APP_NAME.xcarchive \
             clean archive
+
       - name: Exportar IPA
         script: |
           xcodebuild -exportArchive \
             -archivePath $CM_BUILD_DIR/$APP_NAME.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
+            -exportOptionsPlist ios/exportOptions.plist \
             -exportPath $CM_BUILD_DIR/exported
+
     artifacts:
       - build/**/exported/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.app
-    publishing:
-      email:
-        recipients:
-          - igor.arena35@gmail.com
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
