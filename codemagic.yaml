@@ -3,8 +3,8 @@ workflows:
     name: Build iOS for MyAudioApp
     environment:
       vars:
-        XCODE_WORKSPACE: "myAudioApp.xcworkspace"
-        XCODE_SCHEME: "myAudioApp"
+        XCODE_WORKSPACE: "app.xcworkspace"
+        XCODE_SCHEME: "app"
       xcode: latest
       cocoapods: default
       node: 18.16.0
@@ -21,12 +21,12 @@ workflows:
           cd ios
           xcodebuild -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" || {
             echo "Criando scheme compartilhado..."
-            xcodebuild -project myAudioApp.xcodeproj -scheme myAudioApp -showBuildSettings
+            xcodebuild -project myAudioApp.xcodeproj -scheme app -showBuildSettings
           }
       - name: Verificar schemes após adicionar .xcscheme
         script: |
           cd ios
-          xcodebuild -list -project myAudioApp.xcodeproj
+          xcodebuild -list -project app.xcodeproj
       - name: Build iOS
         script: |
           cd ios
@@ -35,9 +35,9 @@ workflows:
             -scheme "$XCODE_SCHEME" \
             -sdk iphoneos \
             -configuration Release \
-            -archivePath $CM_BUILD_DIR/myAudioApp.xcarchive \
+            -archivePath $CM_BUILD_DIR/app.xcarchive \
             DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM \
             CODE_SIGN_STYLE=Automatic \
             clean archive
     artifacts:
-      - build/**/myAudioApp.xcarchive
+      - build/**/app.xcarchive
