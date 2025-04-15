@@ -3,8 +3,8 @@ workflows:
     name: Build iOS for MyAudioApp
     environment:
       vars:
-        XCODE_WORKSPACE: "MyAudioApp.xcworkspace"
-        XCODE_SCHEME: "MyAudioApp"
+        XCODE_WORKSPACE: "myAudioApp.xcworkspace"
+        XCODE_SCHEME: "myAudioApp"
       xcode: latest
       cocoapods: default
       node: 18.16.0
@@ -12,6 +12,10 @@ workflows:
       - name: Instalar dependências Node
         script: |
           npm install
+      - name: 🔍 Listar schemes disponíveis
+        script: |
+          cd ios
+          xcodebuild -list -workspace MyAudioApp.xcworkspace
       - name: Instalar Pods iOS
         script: |
           cd ios
