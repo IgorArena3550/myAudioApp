@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>WebSocket Audio Player</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+    <h1>🔊 Cliente Web - Áudio em Tempo Real</h1>
+    <p id="status">Conectando...</p>
+    <button id="connectBtn">connect</button>
+    <button id="sendAudioBtn">send audio</button>
+    <button id="stopBtn"> stop </button>
+    
+    <script>
+        let ws;
+        let audioContext; // declarado fora
+        let SERVER_URL = 'ws://172.28.3.63:8080'
+        let mediaStream;
+        let mediaRecorder;
+        
+        const connectBtn = document.getElementById('connectBtn')
+        const sendAudioBtn = document.getElementById('sendAudioBtn')
+        const stopBtn = document.getElementById('stopBtn')
+        
+        connectBtn.onclick = () => {
+            connectBtn.disabled = true;
+            sendAudioBtn.disabled = false;
+            stopBtn.disabled = false;
+            
+            // ✅ Agora criamos o AudioContext DENTRO da interação do usuário
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            ws = new WebSocket(SERVER_URL);
+            ws.binaryType = "arraybuffer";
+            
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            ws.onopen = () => {
+                console.log("✅ Conectado ao servidor WebSocket");
+            };
+            
+            ws.onmessage = async (event) => {
+                const sampleRate = 16000; // mesmo do app
+                const buffer = event.data;
+                
+                // Garante que o dado seja um ArrayBuffer
+                if (!(buffer instanceof ArrayBuffer)) {
+                    console.warn("❗ Dado recebido não é ArrayBuffer:", buffer);
+                    return;
+                }
+                
+                const int16Array = new Int16Array(buffer);
+                const float32Array = new Float32Array(int16Array.length);
+                
+                for (let i = 0; i < int16Array.length; i++) {
+                    float32Array[i] = int16Array[i] / 32768.0;
+                }
+                
+                const audioBuffer = audioContext.createBuffer(1, float32Array.length, sampleRate);
+                audioBuffer.getChannelData(0).set(float32Array);
+                
+                try {
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start();
+                } catch (error) {
+                    console.error("Erro ao reproduzir:", error);
+                }
+            };
+            
+            ws.onclose = () => console.log("🔌 Conexão encerrada");
+            ws.onerror = (err) => console.error("Erro WebSocket:", err);
+        };
+        
+        sendAudioBtn.onclick = async () => {
+            sendAudioBtn.disabled = true;
+            
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                const mediaStreamAudioSourceNode = audioContext.createMediaStreamSource(mediaStream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                mediaStreamAudioSourceNode.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                processor.onaudioprocess = function (e) {
+                    const floatData = e.inputBuffer.getChannelData(0);
+                    const int16Data = float32ToInt16(floatData);
+                    
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(int16Data.buffer);
+                    }
+                };
+                
+                stopBtn.onclick = () => {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    processor.disconnect();
+                    mediaStreamAudioSourceNode.disconnect();
+                    ws.close();
+                    connectBtn.disabled = false;
+                    sendAudioBtn.disabled = false;
+                    stopBtn.disabled = true;
+                };
+                
+                console.log("🎤 Enviando áudio para o servidor...");
+            } catch (e) {
+                console.error("Erro ao acessar o microfone:", e);
+            }
+        };
+        
+        // 🔄 Conversor Float32 -> Int16 PCM
+        function float32ToInt16(buffer) {
+            let l = buffer.length;
+            let result = new Int16Array(l);
+            
+            for (let i = 0; i < l; i++) {
+                let s = Math.max(-1, Math.min(1, buffer[i]));
+                result[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            
+            return result;
+        }
+    </script>
+</body>
+</html>
