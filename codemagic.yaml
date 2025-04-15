@@ -12,10 +12,6 @@ workflows:
       - name: Instalar dependências Node
         script: |
           npm install
-      - name: 🔍 Listar schemes disponíveis
-        script: |
-          cd ios
-          xcodebuild -list -workspace myAudioApp.xcworkspace
       - name: Instalar Pods iOS
         script: |
           cd ios
@@ -23,7 +19,7 @@ workflows:
       - name: Criar Scheme se não existir
         script: |
           cd ios
-          xcodebuild -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" -list || {
+          xcodebuild -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" || {
             echo "Criando scheme compartilhado..."
             xcodebuild -project myAudioApp.xcodeproj -scheme myAudioApp -showBuildSettings
           }
